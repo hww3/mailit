@@ -4,7 +4,7 @@
 // Written by Bill Welliver, <hww3@riverweb.com>
 //
 //
-string cvs_version = "$Id: mailit.pike,v 1.1 1997-12-04 11:54:16 hww3 Exp $";
+string cvs_version = "$Id: mailit.pike,v 1.2 1997-12-04 13:11:38 hww3 Exp $";
 #include <module.h>
 #include <process.h>
 inherit "module";
@@ -51,75 +51,35 @@ string|void check_variable(string variable, mixed set_to)
                 }
 }
 
+string tag_header(string tag_name, mapping arguments,
+		object request_id, object file, mapping defines)
+  {
 
-mixed container_mailit(string tag_name, mapping arguments,
-			string contents, object request_id,
-			mapping defines)
-	{
-	string retval="";
-	string message="";
-	message=message+"To: " + arguments->to + "\n";
-		if(arguments->cc){
+  string headtype;
+  string headvalue;
 
-		if(request_id->variables[arguments->cc])
-		message=message+"Cc: " + request_id->variables[arguments->cc] + "\n";
-		
-		else 
-			{
-			if(request_id->variables[query("defaultcc")])
-			message=message+"Cc: " + request_id->variables[query("defaultcc")] + "\n";
+  if (arguments->subject)
+    {
+    headtype="Subject";
+    headvalue=arguments->subject;
+    }
+  else if (arguments->to)
+    {
+    headtype="To";
+    headvalue=arguments->to;
+    }
+  else
+    {
+    headtype=arguments->name;
+    headvalue=arguments->value;
+    }
 
-			}
-		}
-		if(arguments->replyto){
+perror("parsing header: "+headtype+" "+headvalue+"\n");
 
-		if(request_id->variables[arguments->replyto])
-		message=message+"Reply-to: " + request_id->variables[arguments->replyto]+ "\n";
-		
-		else 
-			{
-			if(request_id->variables[query("defaultreplyto")])
-			message=message+"Reply-to: "+request_id->variables[query("defaultreplyto")] + "\n";
+  request_id->misc->mailitmsg->headers+=([headtype:headvalue]);
+  return "";
 
-			}
-		}
-
-	message=message+"X-Mailer: Roxen Mailit! Module 0.93\n";
-	message=message+"Subject: "+ arguments->subject + "\n";
-	if(query("mailitdebug"))
-		perror("MailIt!: Parsing Message Contents...\n");
-	message=message+parse_rxml(contents, request_id);
-	array(mixed) f_user;
-	if(query("checkowner")){
-		array(int) file_uid=file_stat(request_id->realfile);
-		f_user=getpwuid(file_uid[5]);
-		}
-
-    object in=clone(files.file, "stdout");
-        object  out=in->pipe();
- 
-	if(query("mailitdebug")){
-		if(query("checkowner"))
-		perror("MailIt!: Sending mail from "+f_user[0]+"...\n");
-		perror("MailIt!: Sending mail...\n");
-		}
-	if(query("checkowner")){
-//	if (catch(
-spawn(query("sendmail")+" -t -f "+f_user[0]+"",out,0,out);
-// ))
-//		perror("MailIt!: Error spawning " + query("sendmail") + "\n");
-		}
-	else {
-	//	if (catch(
-		spawn(query("sendmail")+" -t",out,0,out);
-		// ))
-		//	perror("MailIt!: Error spawning " + query("sendmail") + "\n");
-		}
-
-	in->write(message);
-	in->close();		
-	return retval;	
-	}
+  }
 
 string tag_mfield(string tag_name, mapping arguments,
 		object request_id, object file, mapping defines)
@@ -140,7 +100,65 @@ string tag_mfield(string tag_name, mapping arguments,
 	}
 
 
-mapping query_tag_callers() { return (["mfield":tag_mfield,]); }
+mixed container_message(string tag_name, mapping arguments,
+			string contents, object request_id,
+			mapping defines)
+{
+
+if (arguments->encoding)
+request_id->misc->mailitmsg->setencoding(arguments->encoding);
+else
+request_id->misc->mailitmsg->setencoding("quoted-printable");
+request_id->misc->mailitmsg->setdata(contents);
+return "";
+
+}
+
+mixed container_mailit(string tag_name, mapping arguments,
+			string contents, object request_id,
+			mapping defines)
+	{
+	string retval="";
+        request_id->misc+=(["mailitmsg":MIME.Message("",
+  	  ([ "MIME-Version" : "1.0",
+             "Content-Type" : "text/plain; charset=iso-8859-1",
+	     "X-Mailer" : "MailIt! for Roxen 1.2" ])
+		) ]);
+	if(query("mailitdebug"))
+		perror("MailIt!: Parsing Message Contents...\n");
+	contents=parse_rxml(contents, request_id);
+	contents = parse_html(contents,([ "mailheader":tag_header ]),
+                    (["mailmessage":container_message]), request_id ); 
+	array(mixed) f_user;
+	if(query("checkowner")){
+		array(int) file_uid=file_stat(request_id->realfile);
+		f_user=getpwuid(file_uid[5]);
+		}
+
+    object in=clone(files.file, "stdout");
+        object  out=in->pipe();
+ 
+	if(query("mailitdebug")){
+		if(query("checkowner"))
+		perror("MailIt!: Sending mail from "+f_user[0]+"...\n");
+		perror("MailIt!: Sending mail...\n");
+		}
+	if(query("checkowner")){
+	  spawn(query("sendmail")+" -t -f "+f_user[0]+"",out,0,out);
+	  }
+	else {
+	  spawn(query("sendmail")+" -t",out,0,out);
+	  }
+	retval=(string)request_id->misc->mailitmsg;
+	in->write((string)request_id->misc->mailitmsg);
+	in->close();
+	m_delete(request_id->misc,"mailitmsg");		
+//	return "<pre>"+retval+"</pre>";	
+	return "";
+	}
+
+
+// mapping query_tag_callers() { return (["mfield":tag_mfield,]); }
 
 mapping query_container_callers() { return (["mailit":container_mailit, ]); }
 
