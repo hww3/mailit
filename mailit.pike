@@ -4,7 +4,7 @@
 // Written by Bill Welliver, <hww3@riverweb.com>
 //
 //
-string cvs_version = "$Id: mailit.pike,v 1.4 1997-12-05 11:49:56 hww3 Exp $";
+string cvs_version = "$Id: mailit.pike,v 1.5 1999-06-20 19:14:42 hww3 Exp $";
 #include <module.h>
 #include <process.h>
 inherit "module";
@@ -13,7 +13,7 @@ inherit "roxenlib";
 array register_module()
 {
   return ({ MODULE_PARSER,
-            "MailIt  Module",
+            "MailIt! 1.0  Module",
             "Adds the container 'mailit' and the tag 'mfield'.", ({}), 1
             });
 }
@@ -23,14 +23,6 @@ void create()
   defvar("sendmail", "/usr/lib/sendmail", "Sendmail Binary", 
          TYPE_STRING,
          "This is the location of the sendmail binary.\n");
-  defvar("defaultcc", "cc_address", "Default CC Field", 
-         TYPE_STRING,
-         "If not specified in the mailit tag, this is the form field that"
-	 "will be used for the Carbon Copy.\n");
-  defvar("defaultreplyto", "cc_address", "Default Reply-to Field", 
-         TYPE_STRING,
-         "If not specified in the mailit tag, this is the form field that"
-	 "will be used for the Reply-to line.\n");
  defvar("checkowner", 1, "Send mail from owner of template file",
 	TYPE_FLAG,
          "If set, and Roxen is running as a sendmail trusted user,"
@@ -68,12 +60,12 @@ string tag_header(string tag_name, mapping arguments,
     headtype="To";
     headvalue=arguments->to;
     }
-  else
+  else if(arguments->name && arguments->name!="")
     {
     headtype=arguments->name;
-    headvalue=arguments->value;
+    headvalue=arguments->value||"";
     }
-
+  else return "<!-- Skipping header tag because of incorrect usage. -->";
 perror("parsing header: "+headtype+" "+headvalue+"\n");
 
   request_id->misc->mailitmsg->headers+=([headtype:headvalue]);
@@ -109,6 +101,29 @@ if (arguments->encoding)
 request_id->misc->mailitmsg->setencoding(arguments->encoding);
 else
 request_id->misc->mailitmsg->setencoding("7bit");
+if(arguments->preprocess){
+/*
+   object in=clone(Stdio.File, "stdout");
+   object  out=in->pipe();
+   object in2=clone(Stdio.File, "stdin");
+   object  out2=in2->pipe();
+perror("starting preprocessor...");   
+spawn(arguments->preprocess,out,out2,out);
+perror("done.\n");   
+   in->write(contents);
+perror("message written to preprocessor.\n");   
+   in->close();  
+perror("input closed.\n");   
+   contents=in2->read();
+perror("output from preprocessor done.\n");   
+   in2->close();
+perror("preprocessing done.\n");   
+*/
+perror(arguments->preprocess+" << EOF\n"+contents+"\nEOF\n");
+contents=popen(arguments->preprocess+" << EOF\n"+contents+"\nEOF\n"); 
+perror(contents);
+  }
+
 request_id->misc->mailitmsg->setdata(contents);
 return "";
 
@@ -134,7 +149,7 @@ mixed container_mailit(string tag_name, mapping arguments,
 		f_user=getpwuid(file_uid[5]);
 		}
 
-    object in=clone(files.file, "stdout");
+    object in=clone(Stdio.File, "stdout");
         object  out=in->pipe();
  
 	if(query("mailitdebug")){
@@ -153,7 +168,7 @@ mixed container_mailit(string tag_name, mapping arguments,
 	in->close();
 	m_delete(request_id->misc,"mailitmsg");		
 //	return "<pre>"+retval+"</pre>";	
-	return "";
+	return contents;
 	}
 
 
