@@ -4,12 +4,15 @@
 // Written by Bill Welliver, <hww3@riverweb.com>
 //
 //
-string cvs_version = "$Id: mailit.pike,v 1.9 2000-10-19 19:00:04 hww3 Exp $";
+string cvs_version = "$Id: mailit.pike,v 1.10 2002-01-29 18:50:53 hww3 Exp $";
 #include <module.h>
 #include <process.h>
 inherit "module";
 inherit "roxenlib";
 
+string mimewarning="This message is in MIME format.  The first part should be readable text,"
+ "\n"
+ "while the remaining parts are likely unreadable without MIME-aware tools.\n";
 array register_module()
 {
   return ({ MODULE_PARSER,
@@ -37,6 +40,11 @@ void create()
 	TYPE_FLAG,
          "If set, and Roxen is running as a sendmail trusted user,"
 	 " MailIt! will send the mail as the owner of the template file.",0,use_sendmail);
+ defvar("enableattach", 0, "Enable sending of attachments?",
+	TYPE_FLAG,
+	 "Enable sending of attachments? Enabling this feature has serious "
+         "security implications. Do not enable this feature unless you "
+         "are running the server as a non-priveledged user.");
  defvar("mailitdebug", 0, "Enable debugging",
 	TYPE_FLAG,
          "If set, MailIt! will write debugging information to the error log."
@@ -83,12 +91,12 @@ string tag_header(string tag_name, mapping arguments,
     }
   else if (arguments->to)
     {
-    headtype="To";
+    headtype="to";
     headvalue=arguments->to;
     }
   else if (arguments->from)
     {
-    headtype="From";
+    headtype="from";
     headvalue=arguments->from;
     }
   else if(arguments->name && arguments->name!="")
@@ -99,7 +107,7 @@ string tag_header(string tag_name, mapping arguments,
   else return "<!-- Skipping header tag because of incorrect usage. -->";
 // perror("parsing header: "+headtype+" "+headvalue+"\n");
 
-  request_id->misc->mailitmsg->headers+=([headtype:headvalue]);
+  request_id->misc->mailithdrs+=([headtype:headvalue]);
   return "";
 
   }
@@ -122,6 +130,37 @@ string tag_mfield(string tag_name, mapping arguments,
 	return html_encode_string(retval);
 	}
 
+string tag_attach(string tag_name, mapping arguments,
+		object request_id, object file, mapping defines)
+{
+  if(query("enableattach")!=1) return "<!-- attachments are disabled by your server administrator -->";
+  if(!arguments->file)
+   return "";
+
+  string content_type, file_name, descr="";
+  mapping headers=([]);
+
+  if(arguments->content_type) 
+    content_type=arguments->content_type;
+  else
+    content_type=request_id->conf->type_from_filename(arguments->file);
+  file_name=arguments->file;
+  headers["content-type"]=content_type;
+  headers["x-file-description"]=descr;   
+
+  mixed file_contents=Stdio.read_file(file_name);
+
+  if(!file_contents) return "";
+  file_name=reverse(explode_path(file_name))[0];
+  object a=MIME.Message(file_contents, headers);
+  if (arguments->encoding)
+    a->setencoding(arguments->encoding);
+  else
+    a->setencoding("base64");
+  a->setdisp_param("filename", file_name);
+  request_id->misc->mailitattachments+=({a});
+  return "";
+}
 
 mixed container_message(string tag_name, mapping arguments,
 			string contents, object request_id,
@@ -129,33 +168,12 @@ mixed container_message(string tag_name, mapping arguments,
 {
 
 if (arguments->encoding)
-request_id->misc->mailitmsg->setencoding(arguments->encoding);
+request_id->misc->mailitencode=arguments->encoding;
 else
-request_id->misc->mailitmsg->setencoding("7bit");
-if(arguments->preprocess){
-/*
-   object in=clone(Stdio.File, "stdout");
-   object  out=in->pipe();
-   object in2=clone(Stdio.File, "stdin");
-   object  out2=in2->pipe();
-perror("starting preprocessor...");   
-spawn(arguments->preprocess,out,out2,out);
-perror("done.\n");   
-   in->write(contents);
-perror("message written to preprocessor.\n");   
-   in->close();  
-perror("input closed.\n");   
-   contents=in2->read();
-perror("output from preprocessor done.\n");   
-   in2->close();
-perror("preprocessing done.\n");   
-*/
-// perror(arguments->preprocess+" << EOF\n"+contents+"\nEOF\n");
-contents=popen(arguments->preprocess+" << EOF\n"+contents+"\nEOF\n"); 
-// perror(contents);
-  }
+request_id->misc->mailitencode="7bit";
 
-request_id->misc->mailitmsg->setdata(html_decode_string(contents));
+
+request_id->misc->mailitbody=contents;
 return "";
 
 }
@@ -165,25 +183,47 @@ mixed container_mailit(string tag_name, mapping arguments,
 			mapping defines)
 	{
 	string retval="";
-        request_id->misc+=(["mailitmsg":MIME.Message("",
-  	  ([ "MIME-Version" : "1.0",
+	mapping hdrs=([]);
+	hdrs=  	  ([ "MIME-Version" : "1.0",
              "Content-Type" : "text/plain; charset="+(arguments->charset||"iso-8859-1"),
 	     "X-Originating-IP" : request_id->remoteaddr,
              "X-HTTP-Referer" : (sizeof(request_id->referer||({}))?request_id->referer[0]:"None / Unknown"),
 	     "X-Navigator-Client":(sizeof(request_id->client||({}))?request_id->client*" ":"None / Unknown"),
-	     "X-Mailer" : "MailIt! for Roxen 1.2" ])
-		) ]);
+	     "X-Mailer" : "MailIt! for Roxen/Caudium" ]);
+
+        request_id->misc->mailitattachments=({});
+	request_id->misc->mailitencode="7bit";
+	request_id->misc->mailithdrs=hdrs;
+	request_id->misc->mailitbody="";
 
 	contents=parse_rxml(contents, request_id);
-	contents = parse_html(contents,([ "mailheader":tag_header ]),
+	contents = parse_html(contents,([ "mailheader":tag_header,
+			"mailattach":tag_attach ]),
                     (["mailmessage":container_message]), request_id ); 
-	// Debug code...
-	//perror(sprintf("ID:%O\n",mkmapping(indices(request_id->misc->mailitmsg->headers),values(request_id->misc->mailitmsg->headers))));
-	// Debug code...
+	object mpmsg;
+
+        if(sizeof(request_id->misc->mailitattachments)>0)
+	{
+	  
+request_id->misc->mailitattachments=({MIME.Message(request_id->misc->mailitbody, (["Content-Type":request_id->misc->mailithdrs["Content-Type"]]))}) + 
+request_id->misc->mailitattachments;
+	  request_id->misc->mailithdrs["Content-Type"]="multipart/mixed";
+		mpmsg=MIME.Message(mimewarning, 
+		 request_id->misc->mailithdrs,request_id->misc->mailitattachments);
+	  mpmsg->setencoding(request_id->misc->mailitencode);
+	}
+	else
+	{
+	  mpmsg=MIME.Message(request_id->misc->mailitbody,
+		request_id->misc->mailithdrs);
+
+	}
 #if constant(Protocols.SMTP)
 	if(query("usesmtp"))
         {
-          Protocols.SMTP.client(query("mailserver"),query("mailport"))->send_message(request_id->misc->mailitmsg->headers->From || query("defaultsender"),({ request_id->misc->mailitmsg->headers->To || query("defaultrecipient") }), (string)request_id->misc->mailitmsg);
+
+Protocols.SMTP.client(query("mailserver"),query("mailport"))->send_message(request_id->misc->mailithdrs->from
+|| query("defaultsender"),({ request_id->misc->mailithdrs->to ||  query("defaultrecipient") }), (string)mpmsg);
         }
         else
         {
@@ -204,7 +244,6 @@ mixed container_mailit(string tag_name, mapping arguments,
 	if(query("mailitdebug")){
 		if(query("checkowner"))
 		perror("MailIt!: Sending mail from "+f_user[0]+"...\n");
-//		perror("MailIt!: Sending mail...\n");
 		}
 	if(query("checkowner")){
 	  spawn(query("sendmail")+" -t -f "+f_user[0]+"",out,0,out);
@@ -212,11 +251,12 @@ mixed container_mailit(string tag_name, mapping arguments,
 	else {
 	  spawn(query("sendmail")+" -t",out,0,out);
 	  }
-	retval=(string)request_id->misc->mailitmsg;
-	in->write((string)request_id->misc->mailitmsg);
+	retval=(string)mpmsg;
+	in->write((string)mpmsg);
 	in->close();
-	m_delete(request_id->misc,"mailitmsg");		
-//	return "<pre>"+retval+"</pre>";	
+	m_delete(request_id->misc,"mailithdrs");		
+	m_delete(request_id->misc,"mailitattachments");		
+	m_delete(request_id->misc,"mailitbody");		
 	#if constant(Protocols.SMTP)
         }
 	#endif
