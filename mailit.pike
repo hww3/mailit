@@ -4,7 +4,7 @@
 // Written by Bill Welliver, <hww3@riverweb.com>
 //
 //
-string cvs_version = "$Id: mailit.pike,v 1.7 1999-10-20 19:32:00 hww3 Exp $";
+string cvs_version = "$Id: mailit.pike,v 1.8 2000-07-19 13:42:20 hww3 Exp $";
 #include <module.h>
 #include <process.h>
 inherit "module";
@@ -18,20 +18,46 @@ array register_module()
             });
 }
 
+int use_sendmail()
+{
+	return QUERY(usesmtp);
+}
+
+int use_smtp()
+{
+	return !QUERY(usesmtp);
+}
+
 void create()
 {
   defvar("sendmail", "/usr/lib/sendmail", "Sendmail Binary", 
          TYPE_STRING,
-         "This is the location of the sendmail binary.\n");
+         "This is the location of the sendmail binary.\n",0,use_sendmail);
  defvar("checkowner", 1, "Send mail from owner of template file",
 	TYPE_FLAG,
          "If set, and Roxen is running as a sendmail trusted user,"
-	 " MailIt! will send the mail as the owner of the template file.");
+	 " MailIt! will send the mail as the owner of the template file.",0,use_sendmail);
  defvar("mailitdebug", 0, "Enable debugging",
 	TYPE_FLAG,
          "If set, MailIt! will write debugging information to the error log."
 	 );
+#if constant(Protocols.SMTP)
+ defvar("usesmtp",0,"Use SMTP", TYPE_FLAG,
+        "Use SMTP with the Pike SMTP client library instead of the local sendmail");
+ defvar("mailserver","mail","SMTP server",TYPE_STRING,
+        "The SMTP server to use to send the mail",0,use_smtp);
 
+ defvar("mailport",25,"SMTP port",TYPE_INT,
+        "The SMTP port to use when using SMTP protocol",0,use_smtp);
+
+ defvar("defaultrecepient","nobody@nobody.com","Default Recipient", TYPE_STRING,
+        "The default recepient email address, if the user doesn't specify a recipient.",0,use_smtp);
+ 
+ defvar("defaultsender","nobody@nobody.com","Default Sender", TYPE_STRING,
+        "The default sender email address, if the user doesn't specify a sender"
+        " address",0,use_smtp);
+
+#endif	// constant(Protocols.SMTP)
 }
 
 string|void check_variable(string variable, mixed set_to)
@@ -59,6 +85,11 @@ string tag_header(string tag_name, mapping arguments,
     {
     headtype="To";
     headvalue=arguments->to;
+    }
+  else if (arguments->from)
+    {
+    headtype="From";
+    headvalue=arguments->from;
     }
   else if(arguments->name && arguments->name!="")
     {
@@ -137,12 +168,26 @@ mixed container_mailit(string tag_name, mapping arguments,
         request_id->misc+=(["mailitmsg":MIME.Message("",
   	  ([ "MIME-Version" : "1.0",
              "Content-Type" : "text/plain; charset="+(arguments->charset||"iso-8859-1"),
+	     "X-Originating-IP" : request_id->remoteaddr,
+             "X-HTTP-Referer" : (sizeof(request_id->referer||({}))?request_id->referer[0]:"None / Unknown"),
+	     "X-Navigator-Client":(sizeof(request_id->client||({}))?request_id->client*" ":"None / Unknown"),
 	     "X-Mailer" : "MailIt! for Roxen 1.2" ])
 		) ]);
 
 	contents=parse_rxml(contents, request_id);
 	contents = parse_html(contents,([ "mailheader":tag_header ]),
                     (["mailmessage":container_message]), request_id ); 
+	// Debug code...
+	//perror(sprintf("ID:%O\n",mkmapping(indices(request_id->misc->mailitmsg->headers),values(request_id->misc->mailitmsg->headers))));
+	// Debug code...
+#if constant(Protocols.SMTP)
+	if(query("usesmtp"))
+        {
+          Protocols.SMTP.client(query("mailserver"),query("mailport"))->send_message(request_id->misc->mailitmsg->headers->From || query("defaultsender"),({ request_id->misc->mailitmsg->headers->To || query("defaultrecipient") }), (string)request_id->misc->mailitmsg);
+        }
+        else
+        {
+#endif
 	array(mixed) f_user;
 	if(query("checkowner")){
 		array(int) file_uid=file_stat(request_id->realfile);
@@ -168,6 +213,9 @@ mixed container_mailit(string tag_name, mapping arguments,
 	in->close();
 	m_delete(request_id->misc,"mailitmsg");		
 //	return "<pre>"+retval+"</pre>";	
+	#if constant(Protocols.SMTP)
+        }
+	#endif
 	return contents;
 	}
 
