@@ -1,0 +1,153 @@
+[MailIt! version 0.93]
+
+MailIt! is a free module for the Roxen Web Server. It allows easy formatting
+and mailing of HTML Form data without the need to program custom CGI
+scripts.
+
+Please remember that this is a work in progress. Your comments and
+suggestions are appreciated. Click here to send your comments to me, the
+developer.
+
+If you find this module useful, I'd greatly appreciate a postcard from you
+letting me know you're out there. My Address is included in the
+distribution.
+
+[What's New]
+
+Version 0.93:
+
+	Version 0.93 will only work with Roxen 1.2 or higher.
+
+	Added 2 options to mfield tag: empty and add. (Thanks to Alan Wood!)
+
+Version 0.91:
+
+	Fixed bug that ignored parsing mfield tags if the data was empty
+  	or didn't exist.
+
+	Added support for username changing based upon template uid.
+
+	Added debugging code.
+
+	Added replyto support.
+
+
+[Requirements]
+
+   * Roxen 1.2 or higher.
+   * sendmail or compatible mailer (qmail is rumoured to work).
+
+[Getting MailIt!]
+
+   * Download the latest version of MailIt! with Documentation (v0.93) from
+	http://www.riverweb.com/modules/mailit/mailit-0.93.tar.gz
+
+[Installing MailIt!]
+
+Using MailIt! is simple! Just download the archive, then unpack it by using
+the following command:
+
+        tar -zxvf mailit-0.93.tar.gz
+
+You should get a directory called mailit-0.93. Inside that directory is a
+file called mailit.pike. Copy that file to your Roxen modules directory,
+under roxen/server/modules. Then you can use the Configuration Interface to
+add the MailIt! module.
+
+There are a few options you can change, but in most cases it won't be
+nessecary. If your sendmail binary is in a location other than /usr/lib,
+you'll need to make the appropriate adjustments.
+
+You can specify the default field names that MailIt! can get Carbon Copy 
+and Reply-to information from if you request these and don't specify 
+the location in the <mailit> tag.
+
+Included is support for MailIt! to set the sender of messages based on the
+owner of the template file. This is available only if Roxen is running as
+a sendmail trusted user. Check your sendmail man page for more info.
+
+You can also turn on debug messages, which can provide helpful information
+for me if I'm looking for a bug.
+
+That's all there is to it! You can now start using the features of the
+MailIt! module.
+
+[Using MailIt!]
+
+There are 3 components of a working MailIt! application:
+
+   * The MailIt! Module (you've already installed it)
+   * An HTML Form Page
+   * A MailIt! Template Page
+
+[The HTML Form Page]
+You can use any text or HTML editor you'd like to create the form page. This
+just contains the fields that you'd like to have mailed when a user presses
+the submit button. The key is to set the form action to be the URL of an
+HTML page that uses the features of MailIt!. When designing your form,
+simply keep in mind the names of the various elements that you add to the
+form. You'll need to supply these in the Template page later.
+
+[The MailIt! Template]
+The MailIt! Template is simply an HTML file that includes MailIt! tags. The
+two tags that are provided by MailIt! are:
+
+     <mailit> </mailit> and <mfield>
+
+The first tag tells MailIt! that you are going to send everything inside the
+two tags as an email message. Anything enclosed by these tags will not get
+returned to the browser. Everything outside the mailit tags will be returned
+to the browser as a response to the form submission.
+
+The mailit container takes the following attributes:
+
+subject="Subject of Message"
+     Lets you specify the subject of the message. Optional, but basically
+     essential.
+
+to="Email Address"
+     Tells MailIt! where to send the message. Absolutely required.
+
+cc="Field Name"
+     If included, tells MailIt! the name of the Form Field to use for the
+     Carbon Copy address. Optional. Omit if you don't want Carbon Copying.
+     If you don't specify a fieldname, the default specified in the
+     Configuration Interface will be used.
+
+replyto="Field Name"
+     If included, tells MailIt! the name of the Form Field to use for the 
+     Reply-to line in the mail header. This makes replying to a sender 
+     easier, since many mail programs support replying to the address
+     specified in this line. If you don't specify a fieldname, the default
+     chosen in the configuration interface will be used.
+
+The second tag tells MailIt! to print the value of a form element that you
+specify. You can include these tags inside the mailit container to send the
+information from the form in the email message.
+
+The mfield tag takes the following attribute:
+
+name="Field Name"
+     The name of the Form Field to insert. This is case sensitive. If you
+     specify a bad form field or if the field is empty, mailit will return
+     "Field Empty" as the response.
+
+empty="text" 
+        Gives an alternative response to the default for empty fields.
+	Can be blank (i.e. empty="").
+
+add="text"
+        Text to add after a non-empty field to allow for certain formatting
+	needs e.g "<p>" to add a newline after nonblank fields only (best used 
+	with empty="").
+
+You can put any RXML tags within the body of your message. The formatting
+between the mailit tags is preserved when it is sent as a message.
+
+[Acknowledgments]
+
+Thanks to Alan Wood <alan.wood@abfl.co.uk> for is numerous ideas, the lastest of which appear
+in this version of the module.
+
+Bill Welliver <hww3@riverweb.com>
+9/6/97
