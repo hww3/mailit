@@ -4,7 +4,7 @@
 // Written by Bill Welliver, <hww3@riverweb.com>
 //
 //
-string cvs_version = "$Id: mailit.pike,v 1.5 1999-06-20 19:14:42 hww3 Exp $";
+string cvs_version = "$Id: mailit.pike,v 1.6 1999-10-06 14:24:40 hww3 Exp $";
 #include <module.h>
 #include <process.h>
 inherit "module";
@@ -66,7 +66,7 @@ string tag_header(string tag_name, mapping arguments,
     headvalue=arguments->value||"";
     }
   else return "<!-- Skipping header tag because of incorrect usage. -->";
-perror("parsing header: "+headtype+" "+headvalue+"\n");
+// perror("parsing header: "+headtype+" "+headvalue+"\n");
 
   request_id->misc->mailitmsg->headers+=([headtype:headvalue]);
   return "";
@@ -88,7 +88,7 @@ string tag_mfield(string tag_name, mapping arguments,
 		}
 	if(arguments->add && (string)request_id->variables[arguments->name]!="")
 		retval+=arguments->add;
-	return retval;
+	return html_encode_string(retval);
 	}
 
 
@@ -119,9 +119,9 @@ perror("output from preprocessor done.\n");
    in2->close();
 perror("preprocessing done.\n");   
 */
-perror(arguments->preprocess+" << EOF\n"+contents+"\nEOF\n");
+// perror(arguments->preprocess+" << EOF\n"+contents+"\nEOF\n");
 contents=popen(arguments->preprocess+" << EOF\n"+contents+"\nEOF\n"); 
-perror(contents);
+// perror(contents);
   }
 
 request_id->misc->mailitmsg->setdata(contents);
@@ -155,7 +155,7 @@ mixed container_mailit(string tag_name, mapping arguments,
 	if(query("mailitdebug")){
 		if(query("checkowner"))
 		perror("MailIt!: Sending mail from "+f_user[0]+"...\n");
-		perror("MailIt!: Sending mail...\n");
+//		perror("MailIt!: Sending mail...\n");
 		}
 	if(query("checkowner")){
 	  spawn(query("sendmail")+" -t -f "+f_user[0]+"",out,0,out);
