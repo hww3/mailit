@@ -98,7 +98,6 @@ The MailIt! Template is simply an HTML file that includes MailIt! tags. The
 four tags that are provided by MailIt! are:
 
      <mailit> </mailit> <mailheader>, <mailmessage></mailmessage> and
-	<mfield>
 
 The first tag tells MailIt! that you are going to send an email message. 
 Anything enclosed by these tags will not get returned to the browser.
@@ -134,21 +133,8 @@ The fourth tag tells MailIt! to print the value of a form element that you
 specify. You can include these tags inside the mailit container to send the
 information from the form in the email message.
 
-The mfield tag takes the following attribute:
-
-name="Field Name"
-     The name of the Form Field to insert. This is case sensitive. If you
-     specify a bad form field or if the field is empty, mailit will return
-     "Field Empty" as the response.
-
-empty="text" 
-        Gives an alternative response to the default for empty fields.
-	Can be blank (i.e. empty="").
-
-add="text"
-        Text to add after a non-empty field to allow for certain formatting
-	needs e.g "<p>" to add a newline after nonblank fields only (best used 
-	with empty="").
+IMPORTANT NOTE: Use of the mfield tag has security implications and is
+deprecated. Please use the formoutput container.
 
 You can put any RXML tags within the body of your message. The formatting
 between the mailit tags is preserved when it is sent as a message.
