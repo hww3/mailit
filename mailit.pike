@@ -4,7 +4,7 @@
 // Written by Bill Welliver, <hww3@riverweb.com>
 //
 //
-string cvs_version = "$Id: mailit.pike,v 1.2 1997-12-04 13:11:38 hww3 Exp $";
+string cvs_version = "$Id: mailit.pike,v 1.3 1997-12-04 13:19:20 hww3 Exp $";
 #include <module.h>
 #include <process.h>
 inherit "module";
@@ -108,7 +108,7 @@ mixed container_message(string tag_name, mapping arguments,
 if (arguments->encoding)
 request_id->misc->mailitmsg->setencoding(arguments->encoding);
 else
-request_id->misc->mailitmsg->setencoding("quoted-printable");
+request_id->misc->mailitmsg->setencoding("7bit");
 request_id->misc->mailitmsg->setdata(contents);
 return "";
 
@@ -124,8 +124,7 @@ mixed container_mailit(string tag_name, mapping arguments,
              "Content-Type" : "text/plain; charset=iso-8859-1",
 	     "X-Mailer" : "MailIt! for Roxen 1.2" ])
 		) ]);
-	if(query("mailitdebug"))
-		perror("MailIt!: Parsing Message Contents...\n");
+
 	contents=parse_rxml(contents, request_id);
 	contents = parse_html(contents,([ "mailheader":tag_header ]),
                     (["mailmessage":container_message]), request_id ); 
@@ -158,7 +157,7 @@ mixed container_mailit(string tag_name, mapping arguments,
 	}
 
 
-// mapping query_tag_callers() { return (["mfield":tag_mfield,]); }
+mapping query_tag_callers() { return (["mfield":tag_mfield,]); }
 
 mapping query_container_callers() { return (["mailit":container_mailit, ]); }
 
