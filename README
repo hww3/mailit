@@ -120,6 +120,15 @@ The mailheader tag takes the following attributes:
 
 The third container tag is used to define the message body.
 
+The mailmessage container takes the following argument:
+
+  encoding=endodingtype	Send the message using MIME encoding. The
+			following types are supported:
+
+			8bit, 7bit, base64, binary, quoted-printable, and
+			x-uue.
+The default encoding is 7bit, if another encoding is not specified.
+
 The fourth tag tells MailIt! to print the value of a form element that you
 specify. You can include these tags inside the mailit container to send the
 information from the form in the email message.
