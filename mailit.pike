@@ -4,7 +4,7 @@
 // Written by Bill Welliver, <hww3@riverweb.com>
 //
 //
-string cvs_version = "$Id: mailit.pike,v 1.10 2002-01-29 18:50:53 hww3 Exp $";
+string cvs_version = "$Id: mailit.pike,v 1.11 2002-12-29 17:42:58 hww3 Exp $";
 #include <module.h>
 #include <process.h>
 inherit "module";
@@ -38,8 +38,8 @@ void create()
          "This is the location of the sendmail binary.\n",0,use_sendmail);
  defvar("checkowner", 1, "Send mail from owner of template file",
 	TYPE_FLAG,
-         "If set, and Roxen is running as a sendmail trusted user,"
-	 " MailIt! will send the mail as the owner of the template file.",0,use_sendmail);
+         "If set, and (if using sendmail) the server is running as a sendmail trusted user,"
+	 " MailIt! will send the mail as the owner of the template file.",0);
  defvar("enableattach", 0, "Enable sending of attachments?",
 	TYPE_FLAG,
 	 "Enable sending of attachments? Enabling this feature has serious "
@@ -221,6 +221,20 @@ request_id->misc->mailitattachments;
 #if constant(Protocols.SMTP)
 	if(query("usesmtp"))
         {
+	if(query("checkowner") && !request_id->misc->mailithdrs->from){
+		array(int) file_uid=file_stat(request_id->realfile);
+#if constant(getpwuid)
+		request_id->misc->mailithdrs->from=getpwuid(file_uid[5])[0];
+#else
+		request_id->misc->mailithdrs->from="roxen";
+#endif
+
+#if constant(System.gethostname)
+		request_id->misc->mailithdrs->from+="@" + System.gethostname();
+#endif
+		
+		}
+
 
 Protocols.SMTP.client(query("mailserver"),query("mailport"))->send_message(request_id->misc->mailithdrs->from
 || query("defaultsender"),({ request_id->misc->mailithdrs->to ||  query("defaultrecipient") }), (string)mpmsg);
