@@ -4,7 +4,7 @@
 // Written by Bill Welliver, <hww3@riverweb.com>
 //
 //
-string cvs_version = "$Id: mailit.pike,v 1.3 1997-12-04 13:19:20 hww3 Exp $";
+string cvs_version = "$Id: mailit.pike,v 1.4 1997-12-05 11:49:56 hww3 Exp $";
 #include <module.h>
 #include <process.h>
 inherit "module";
@@ -121,7 +121,7 @@ mixed container_mailit(string tag_name, mapping arguments,
 	string retval="";
         request_id->misc+=(["mailitmsg":MIME.Message("",
   	  ([ "MIME-Version" : "1.0",
-             "Content-Type" : "text/plain; charset=iso-8859-1",
+             "Content-Type" : "text/plain; charset="+(arguments->charset||"iso-8859-1"),
 	     "X-Mailer" : "MailIt! for Roxen 1.2" ])
 		) ]);
 
