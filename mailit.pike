@@ -4,7 +4,7 @@
 // Written by Bill Welliver, <hww3@riverweb.com>
 //
 //
-string cvs_version = "$Id: mailit.pike,v 1.6 1999-10-06 14:24:40 hww3 Exp $";
+string cvs_version = "$Id: mailit.pike,v 1.7 1999-10-20 19:32:00 hww3 Exp $";
 #include <module.h>
 #include <process.h>
 inherit "module";
@@ -124,7 +124,7 @@ contents=popen(arguments->preprocess+" << EOF\n"+contents+"\nEOF\n");
 // perror(contents);
   }
 
-request_id->misc->mailitmsg->setdata(contents);
+request_id->misc->mailitmsg->setdata(html_decode_string(contents));
 return "";
 
 }
