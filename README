@@ -1,4 +1,4 @@
-MailIt! version 1.10
+MailIt! version 1.11
 
 MailIt! is a free module for the Roxen Web Server. It allows easy formatting
 and mailing of HTML Form data without the need to program custom CGI
@@ -14,6 +14,11 @@ distribution.
 
 What's New
 ----------
+
+Version 1.11:
+	Added ability for MailIt! to guess the address of a file owner
+	when using SMTP and the FROM attribute is not set (this is the
+	send mail as file owner option, extended to work with SMTP).
 
 Version 1.10:
 	Added <mailattach> tag to allow MailIt! to send mail messages
@@ -66,7 +71,7 @@ Version 0.91:
 
 [Getting MailIt!]
 
-   * Download the latest version of MailIt! with Documentation (v1.10) from
+   * Download the latest version of MailIt! with Documentation (v1.11) from
 	http://www.riverweb.com/modules/mailit/dist/
 
 [Installing MailIt!]
@@ -74,9 +79,9 @@ Version 0.91:
 Using MailIt! is simple! Just download the archive, then unpack it by using
 the following command:
 
-        tar -zxvf mailit-1.10.tar.gz
+        tar -zxvf mailit-1.11.tar.gz
 
-You should get a directory called mailit-1.10. Inside that directory is a
+You should get a directory called mailit-1.11. Inside that directory is a
 file called mailit.pike. Copy that file to your Caudium/Roxen modules
 directory, under server/local/modules. Then you can use the Configuration
 Interface to add the MailIt! module.
@@ -85,10 +90,10 @@ There are a few options you can change, but in most cases it won't be
 nessecary. If your sendmail binary is in a location other than /usr/lib,
 you'll need to make the appropriate adjustments.
 
-You may also choose to use Roxen's built-in SMTP capability to directly
-spool messages to a central mail hub. If you choose to use this method,
-you must have a mail host that allows relay. Simply configure MailIt! to
-use this mail hub in the Roxen Configuration Interface.
+You may also choose to use Roxen/Caudium's built-in SMTP capability to
+directly spool messages to a central mail hub. If you choose to use this
+method, you must have a mail host that allows relay. Simply configure
+MailIt! to use this mail hub in the Configuration Interface.
 
 Included is support for MailIt! to set the sender of messages based on the
 owner of the template file. This is available only if Caudium/Roxen is
@@ -190,5 +195,5 @@ Thanks to Alan Wood <alan.wood@abfl.co.uk> for is numerous ideas, the
 lastest of which appear in this version of the module.
 
 Bill Welliver <hww3@riverweb.com>
-2/29/02
+12/29/02
 
