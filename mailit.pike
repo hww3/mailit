@@ -4,7 +4,7 @@
 // Written by Bill Welliver, <hww3@riverweb.com>
 //
 //
-string cvs_version = "$Id: mailit.pike,v 1.8 2000-07-19 13:42:20 hww3 Exp $";
+string cvs_version = "$Id: mailit.pike,v 1.9 2000-10-19 19:00:04 hww3 Exp $";
 #include <module.h>
 #include <process.h>
 inherit "module";
@@ -14,7 +14,7 @@ array register_module()
 {
   return ({ MODULE_PARSER,
             "MailIt! 1.0  Module",
-            "Adds the container 'mailit' and the tag 'mfield'.", ({}), 1
+            "Adds the container 'mailit' for sending emails within Roxen.", ({}), 1
             });
 }
 
@@ -191,7 +191,11 @@ mixed container_mailit(string tag_name, mapping arguments,
 	array(mixed) f_user;
 	if(query("checkowner")){
 		array(int) file_uid=file_stat(request_id->realfile);
+#if constant(getpwuid)
 		f_user=getpwuid(file_uid[5]);
+#else
+		f_user="roxen";
+#endif
 		}
 
     object in=clone(Stdio.File, "stdout");
