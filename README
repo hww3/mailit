@@ -1,4 +1,4 @@
-MailIt! version 1.0
+MailIt! version 1.7
 
 MailIt! is a free module for the Roxen Web Server. It allows easy formatting
 and mailing of HTML Form data without the need to program custom CGI
@@ -14,6 +14,10 @@ distribution.
 
 What's New
 ----------
+
+Version 1.7: 
+
+	Added RXML related security patch.
 
 Version 1.0:
 
@@ -144,6 +148,9 @@ between the mailit tags is preserved when it is sent as a message.
 Thanks to Alan Wood <alan.wood@abfl.co.uk> for is numerous ideas, the lastest of which appear
 in this version of the module.
 
+Thanks to Aleph One <aleph1@underground.org> for an RXML related security
+patch.
+
 Bill Welliver <hww3@riverweb.com>
-12/4/97
+10/20/99
 
